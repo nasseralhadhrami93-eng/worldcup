@@ -1,0 +1,411 @@
+"use client"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Navbar } from "@/components/Navbar";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { format, isPast } from "date-fns";
+import { ar } from "date-fns/locale";
+import { ShieldCheck, Lock, Unlock, CheckCircle, Edit, Plus, Trash2, Users } from "lucide-react";
+import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
+
+// Reusable Questions Editor Component (Adjusted for Supabase structure)
+type Question = {
+  id?: string;
+  text: string;
+  options?: { id: string; text: string }[];
+  note?: string;
+}
+
+function QuestionsEditor({
+  questions,
+  onChange
+}: {
+  questions: Question[],
+  onChange: (questions: Question[]) => void
+}) {
+  const updateQuestion = (index: number, updates: Partial<Question>) => {
+    const updated = [...questions];
+    updated[index] = { ...updated[index], ...updates };
+    onChange(updated);
+  };
+
+  const updateOption = (qIndex: number, optIndex: number, text: string) => {
+    const updated = [...questions];
+    const opts = [...(updated[qIndex].options || [])];
+    opts[optIndex] = { ...opts[optIndex], text };
+    updated[qIndex] = { ...updated[qIndex], options: opts };
+    onChange(updated);
+  };
+
+  const removeQuestion = (index: number) => {
+    const updated = [...questions];
+    updated.splice(index, 1);
+    onChange(updated);
+  };
+
+  const addOption = (qIndex: number) => {
+    const updated = [...questions];
+    const opts = updated[qIndex].options || [];
+    updated[qIndex].options = [...opts, { id: `${Date.now()}`, text: '' }];
+    onChange(updated);
+  };
+
+  const removeOption = (qIndex: number, optIndex: number) => {
+    const updated = [...questions];
+    const opts = [...(updated[qIndex].options || [])];
+    opts.splice(optIndex, 1);
+    updated[qIndex].options = opts;
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-6">
+      {questions.map((q, qIndex) => (
+        <div key={qIndex} className="bg-background border border-border rounded-lg p-5 relative group">
+          
+          <div className="absolute top-4 left-4">
+            <Button 
+              type="button" 
+              variant="destructive" 
+              size="icon" 
+              className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removeQuestion(qIndex)}
+              title="حذف السؤال"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="mb-4 pr-2">
+            <label className="text-sm font-bold block mb-1">نص السؤال {qIndex + 1}</label>
+            <Input 
+              value={q.text} 
+              onChange={(e) => updateQuestion(qIndex, { text: e.target.value })} 
+              required
+            />
+          </div>
+
+          {q.options && (
+            <div className="mb-4 space-y-2 bg-card-hover/20 p-3 rounded-md border border-border">
+              <label className="text-sm font-bold block">خيارات الإجابة</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {q.options.map((opt, optIndex) => (
+                  <div key={optIndex} className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-8 text-center">{optIndex + 1}-</span>
+                    <Input 
+                      className="h-9 flex-1"
+                      value={opt.text}
+                      onChange={(e) => updateOption(qIndex, optIndex, e.target.value)}
+                      required
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => removeOption(qIndex, optIndex)}
+                      className="text-destructive hover:text-red-700 disabled:opacity-30"
+                      disabled={q.options!.length <= 2}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" className="mt-2 text-xs gap-1" onClick={() => addOption(qIndex)}>
+                <Plus className="w-3 h-3" /> إضافة خيار جديد
+              </Button>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-bold block mb-1">ملاحظة توضيحية (اختياري)</label>
+            <Input 
+              className="h-9"
+              value={q.note || ""} 
+              onChange={(e) => updateQuestion(qIndex, { note: e.target.value })} 
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function AdminPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [mounted, setMounted] = useState(false);
+
+  const [matches, setMatches] = useState<any[]>([]);
+  const [usersCount, setUsersCount] = useState(0);
+
+  // New Match State
+  const [homeName, setHomeName] = useState("");
+  const [awayName, setAwayName] = useState("");
+  const [kickoff, setKickoff] = useState("");
+  const [newMatchQuestions, setNewMatchQuestions] = useState<Question[]>([]);
+  const [isQuestionsEdited, setIsQuestionsEdited] = useState(false);
+
+  // Grading State (matchId -> { qId -> answer })
+  const [gradingAnswers, setGradingAnswers] = useState<Record<string, Record<string, string>>>({});
+
+  const fetchDashboardData = async () => {
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select(`
+        id, team_one, team_two, match_time, is_manually_locked,
+        questions ( id, question_text, options, correct_option_index )
+      `)
+      .order('match_time', { ascending: false });
+
+    if (matchesData) setMatches(matchesData);
+
+    const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_admin', false);
+    if (count !== null) setUsersCount(count);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    fetchDashboardData();
+  }, [supabase]);
+
+  // Handle Dynamic Generation of New Match Questions
+  useEffect(() => {
+    if (!isQuestionsEdited) {
+      const home = homeName.trim() || "الفريق الأول";
+      const away = awayName.trim() || "الفريق الثاني";
+      
+      setNewMatchQuestions([
+        { text: 'من هو الفريق المتأهل للدور القادم؟', options: [{ id: '0', text: home }, { id: '1', text: away }] },
+        { text: 'من سيسجل أولاً في المباراة؟', options: [{ id: '0', text: home }, { id: '1', text: away }, { id: '2', text: 'لا توجد أهداف في الوقت الأصلي والإضافي' }] },
+        { text: 'ما هي نتيجة المباراة النهائية (فارق الأهداف)؟', options: [
+            { id: '0', text: `فوز ${home} بفارق هدف أو أكثر` }, 
+            { id: '1', text: `فوز ${away} بفارق هدف أو أكثر` }, 
+            { id: '2', text: `الحسم بركلات الترجيح (تأهل ${home})` },
+            { id: '3', text: `الحسم بركلات الترجيح (تأهل ${away})` }
+          ] 
+        },
+        { text: 'في أي وقت سيتم تسجيل أول هدف في المباراة؟', options: [
+            { id: '0', text: 'الشوط الأول' }, 
+            { id: '1', text: 'الشوط الثاني' }, 
+            { id: '2', text: 'الأشواط الإضافية' },
+            { id: '3', text: 'لا توجد أهداف' }
+          ] 
+        },
+        { text: 'كم عدد البطاقات الملونة (الصفراء والحمراء) التي ستشهدها المباراة؟', note: 'الإنذار الثاني ثم الطرد = 3 بطاقات. الطرد المباشر = بطاقة.',
+          options: [ { id: '0', text: '0-2' }, { id: '1', text: '3-4' }, { id: '2', text: '5-6' }, { id: '3', text: '7+' } ] 
+        },
+        { text: 'هل سينجح أي من الفريقين في الحفاظ على نظافة شباكه؟', options: [
+            { id: '0', text: `نعم، ${home} فقط` }, 
+            { id: '1', text: `نعم، ${away} فقط` }, 
+            { id: '2', text: 'لا' },
+            { id: '3', text: 'نعم، كلاهما' }
+          ] 
+        },
+        { text: 'هل ستشهد المباراة احتساب ركلة جزاء؟', options: [
+            { id: '0', text: 'نعم، مسجلة' }, 
+            { id: '1', text: 'نعم، مهدرة' }, 
+            { id: '2', text: 'لا' }
+          ] 
+        }
+      ]);
+    }
+  }, [homeName, awayName, isQuestionsEdited]);
+
+  if (!mounted) return null;
+
+  const handleAddMatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!homeName || !awayName || !kickoff) return;
+
+    const { data: newMatch, error: matchError } = await supabase
+      .from('matches')
+      .insert({
+        team_one: homeName,
+        team_two: awayName,
+        match_time: new Date(kickoff).toISOString(),
+        is_manually_locked: false
+      })
+      .select('id')
+      .single();
+
+    if (matchError || !newMatch) {
+      alert("خطأ أثناء الإضافة: " + matchError?.message);
+      return;
+    }
+
+    const qsToInsert = newMatchQuestions.map((q, idx) => ({
+      match_id: newMatch.id,
+      question_text: q.note ? `${q.text} (${q.note})` : q.text,
+      options: q.options?.map(o => o.text) || [],
+      question_order: idx
+    }));
+
+    await supabase.from('questions').insert(qsToInsert);
+
+    setHomeName(""); setAwayName(""); setKickoff("");
+    setIsQuestionsEdited(false);
+    fetchDashboardData();
+    alert("تم إضافة المباراة بنجاح!");
+  };
+
+  const toggleMatchLock = async (matchId: string, currentLock: boolean) => {
+    await supabase.from('matches').update({ is_manually_locked: !currentLock }).eq('id', matchId);
+    fetchDashboardData();
+  };
+
+  const deleteMatch = async (matchId: string) => {
+    if (confirm("هل أنت متأكد من رغبتك في حذف هذه المباراة نهائياً؟")) {
+      await supabase.from('matches').delete().eq('id', matchId);
+      fetchDashboardData();
+    }
+  };
+
+  const handleGradeMatch = async (match: any) => {
+    const answers = gradingAnswers[match.id];
+    if (!answers || Object.keys(answers).length !== match.questions.length) {
+      alert("الرجاء إدخال جميع الإجابات الصحيحة قبل التقييم.");
+      return;
+    }
+    
+    // Call Supabase RPC to grade securely and award points
+    const { error } = await supabase.rpc('grade_match', { match_uuid: match.id, results: answers });
+    if (error) {
+      alert("حدث خطأ أثناء التقييم: " + error.message);
+      return;
+    }
+
+    alert("تم التقييم وتحديث النقاط!");
+    fetchDashboardData();
+  };
+
+  const updateGradingAnswer = (matchId: string, qId: string, val: string) => {
+    setGradingAnswers(prev => ({
+      ...prev,
+      [matchId]: {
+        ...(prev[matchId] || {}),
+        [qId]: val
+      }
+    }));
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="mb-8 flex items-center gap-3 border-b border-border pb-4">
+          <ShieldCheck className="w-8 h-8 text-destructive" />
+          <div>
+            <h1 className="text-3xl font-black">لوحة الإدارة</h1>
+            <p className="text-muted-foreground text-sm mt-1">إضافة المباريات، التحكم بالقفل، وإدخال النتائج الرسمية</p>
+          </div>
+        </div>
+
+        <div className="space-y-12">
+          
+          {/* Section 1: Add Match */}
+          <section className="bg-card border border-border p-6 rounded-xl relative">
+            <h2 className="text-xl font-bold mb-4">إضافة مباراة جديدة</h2>
+            <form onSubmit={handleAddMatch} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm">الفريق الأول</label>
+                  <Input placeholder="مثال: البرازيل" value={homeName} onChange={e => setHomeName(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm">الفريق الثاني</label>
+                  <Input placeholder="مثال: عمان" value={awayName} onChange={e => setAwayName(e.target.value)} required />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm">وقت البداية</label>
+                  <Input type="datetime-local" value={kickoff} onChange={e => setKickoff(e.target.value)} required />
+                </div>
+              </div>
+
+              <div className="mt-8 bg-background border border-border p-4 rounded-lg shadow-inner">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg text-primary flex items-center gap-2"><CheckCircle className="w-4 h-4" /> معاينة الأسئلة</h3>
+                </div>
+                <QuestionsEditor questions={newMatchQuestions} onChange={(qs) => { setIsQuestionsEdited(true); setNewMatchQuestions(qs); }} />
+              </div>
+
+              <Button type="submit" variant="default" size="lg" className="w-full">حفظ المباراة</Button>
+            </form>
+          </section>
+
+          {/* Manage Matches */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold mb-4">إدارة المباريات</h2>
+            {matches.map(match => {
+              const isGraded = match.questions.some((q:any) => q.correct_option_index !== null);
+              const isLocked = match.is_manually_locked || isPast(new Date(match.match_time));
+
+              return (
+                <div key={match.id} className="bg-card border border-border p-6 rounded-xl flex flex-col md:flex-row gap-6">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-lg">
+                      {match.team_one} <span className="text-muted-foreground font-bold">ضد</span> {match.team_two}
+                    </div>
+                    <div className="text-sm text-muted-foreground" dir="ltr">
+                      {format(new Date(match.match_time), "dd MMM yyyy - HH:mm", { locale: ar })}
+                    </div>
+                    
+                    <div className="pt-2 flex gap-2">
+                      <Button variant={match.is_manually_locked ? "outline" : "default"} size="sm" onClick={() => toggleMatchLock(match.id, match.is_manually_locked)} disabled={isGraded}>
+                        {match.is_manually_locked ? <Unlock className="w-4 h-4 mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
+                        {match.is_manually_locked ? "فتح التوقعات" : "قفل إجباري"}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteMatch(match.id)}>
+                        <Trash2 className="w-4 h-4" /> حذف
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 bg-background rounded-lg p-4 border border-border">
+                    <h3 className="font-bold text-sm mb-3">إدخال النتائج الرسمية:</h3>
+                    {isGraded ? (
+                      <div className="text-primary font-bold bg-primary/10 p-3 rounded-md border border-primary/20 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" /> تم تقييم هذه المباراة
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {match.questions.map((q: any) => (
+                          <div key={q.id}>
+                            <label className="text-xs text-muted-foreground mb-1 block">{q.question_text}</label>
+                            <select 
+                              className="w-full bg-card border border-border rounded-md px-2 py-1 text-sm focus:outline-none"
+                              value={gradingAnswers[match.id]?.[q.id] || ""}
+                              onChange={e => updateGradingAnswer(match.id, q.id, e.target.value)}
+                            >
+                              <option value="" disabled>اختر الإجابة الصحيحة...</option>
+                              {q.options.map((opt: string, i: number) => (
+                                <option key={i} value={i}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                        <Button size="sm" variant="gold" className="w-full mt-2" onClick={() => handleGradeMatch(match)}>تأكيد النتائج وحساب النقاط</Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* Registered Users Link */}
+          <section className="bg-primary/5 border border-primary/20 rounded-xl p-6 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2"><Users className="w-6 h-6 text-primary" /> إدارة المشتركين</h2>
+            </div>
+            <Link href="/admin/users">
+              <Button size="lg" variant="default" className="gap-2"><Users className="w-5 h-5" /> عرض قائمة المشتركين ({usersCount})</Button>
+            </Link>
+          </section>
+
+        </div>
+      </main>
+    </div>
+  );
+}
