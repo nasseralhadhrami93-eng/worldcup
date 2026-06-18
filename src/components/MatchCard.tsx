@@ -26,7 +26,6 @@ export type Prediction = {
   pointsEarned?: number;
 };
 
-import { TeamLogo } from "./ui/TeamLogo";
 import { CountdownTimer } from "./ui/CountdownTimer";
 import { Button } from "./ui/Button";
 
@@ -98,15 +97,13 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
       </div>
 
       {/* Teams */}
-      <div className="p-6 flex justify-between items-center gap-4">
-        <div className="flex flex-col items-center gap-2 flex-1">
-          <TeamLogo teamName={match.homeTeam.name} size={64} />
-          <span className="font-bold text-lg text-center mt-2">{match.homeTeam.name}</span>
+      <div className="p-6 flex justify-between items-center gap-4 bg-gradient-to-b from-transparent to-black/20">
+        <div className="flex flex-col items-center justify-center flex-1">
+          <span className="font-black text-2xl text-center text-primary-foreground">{match.homeTeam.name}</span>
         </div>
-        <div className="text-xl font-bold text-muted-foreground">VS</div>
-        <div className="flex flex-col items-center gap-2 flex-1">
-          <TeamLogo teamName={match.awayTeam.name} size={64} />
-          <span className="font-bold text-lg text-center mt-2">{match.awayTeam.name}</span>
+        <div className="text-2xl font-black text-accent/50 bg-accent/10 px-3 py-1 rounded-lg">VS</div>
+        <div className="flex flex-col items-center justify-center flex-1">
+          <span className="font-black text-2xl text-center text-primary-foreground">{match.awayTeam.name}</span>
         </div>
       </div>
 
