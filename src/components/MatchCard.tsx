@@ -26,6 +26,7 @@ export type Prediction = {
   pointsEarned?: number;
 };
 
+import { TeamLogo } from "./ui/TeamLogo";
 import { Button } from "./ui/Button";
 
 interface MatchCardProps {
@@ -75,7 +76,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
   };
 
   return (
-    <div className={`rounded-xl border ${isLocked ? 'border-white/5 bg-black/40' : 'border-white/10 bg-white/5'} backdrop-blur-lg overflow-hidden shadow-2xl transition-all hover:border-white/20`}>
+    <div className={`rounded-xl border ${isLocked ? 'border-white/5 bg-black/40' : 'border-white/10 bg-white/5'} overflow-hidden shadow-sm transition-all hover:border-white/20`}>
       {/* Header */}
       <div className="p-4 border-b border-white/5 bg-black/20 flex justify-between items-center">
         <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
@@ -100,13 +101,13 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
       {/* Teams */}
       <div className="p-6 flex justify-between items-center gap-4">
         <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-4xl">{match.homeTeam.flag}</span>
-          <span className="font-bold text-lg text-center">{match.homeTeam.name}</span>
+          <TeamLogo teamName={match.homeTeam.name} size={64} />
+          <span className="font-bold text-lg text-center mt-2">{match.homeTeam.name}</span>
         </div>
         <div className="text-xl font-bold text-muted-foreground">VS</div>
         <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-4xl">{match.awayTeam.flag}</span>
-          <span className="font-bold text-lg text-center">{match.awayTeam.name}</span>
+          <TeamLogo teamName={match.awayTeam.name} size={64} />
+          <span className="font-bold text-lg text-center mt-2">{match.awayTeam.name}</span>
         </div>
       </div>
 

@@ -41,7 +41,8 @@ export default function DashboardPage() {
       }
       setUserId(session.user.id);
 
-      // Fetch Matches & Questions
+      // Fetch Matches & Questions (Filter out matches older than 48 hours to optimize mobile payload)
+      const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const { data: matchesData } = await supabase
         .from('matches')
         .select(`
@@ -49,7 +50,8 @@ export default function DashboardPage() {
           questions (
             id, question_text, options, correct_option_index
           )
-        `);
+        `)
+        .gte('match_time', twoDaysAgo);
 
       if (matchesData) {
         const mappedMatches: Match[] = matchesData.map(m => {
