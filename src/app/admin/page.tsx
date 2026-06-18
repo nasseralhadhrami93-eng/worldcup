@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { format, isPast } from "date-fns";
 import { ar } from "date-fns/locale";
-import { ShieldCheck, Lock, Unlock, CheckCircle, Edit, Plus, Trash2, Users } from "lucide-react";
+import { ShieldCheck, Lock, Unlock, CheckCircle, Edit, Plus, Trash2, Users, Bot, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 
@@ -36,6 +36,7 @@ export default function AdminPage() {
 
   // Grading State (matchId -> { qId -> answer })
   const [gradingAnswers, setGradingAnswers] = useState<Record<string, Record<string, string>>>({});
+  const [generatingAI, setGeneratingAI] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
     const { data: matchesData } = await supabase
@@ -177,6 +178,48 @@ export default function AdminPage() {
     }));
   };
 
+  const handleGenerateAI = async (match: any) => {
+    setGeneratingAI(match.id);
+    try {
+      const res = await fetch('/api/match-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamOne: match.team_one,
+          teamTwo: match.team_two,
+          matchTime: match.match_time
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch AI results');
+      
+      if (data.answers && Array.isArray(data.answers)) {
+        const newAnswers: Record<string, string> = {};
+        // Match each answer to the corresponding question ordered by 'question_order' (which we assume matches the array)
+        // Ensure questions are sorted by question_order just in case
+        const sortedQs = [...match.questions].sort((a, b) => (a.question_order || 0) - (b.question_order || 0));
+        sortedQs.forEach((q: any, i: number) => {
+          if (data.answers[i] !== undefined) {
+            newAnswers[q.id] = data.answers[i].toString();
+          }
+        });
+        
+        setGradingAnswers(prev => ({
+          ...prev,
+          [match.id]: newAnswers
+        }));
+        alert('تم جلب الإجابات بنجاح! يرجى مراجعتها وتأكيدها.');
+      } else {
+        throw new Error('تنسيق الاستجابة غير صحيح');
+      }
+    } catch (error: any) {
+      alert("خطأ أثناء الذكاء الاصطناعي: " + error.message);
+    } finally {
+      setGeneratingAI(null);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -258,7 +301,24 @@ export default function AdminPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {match.questions.map((q: any) => (
+                        <div className="flex justify-between items-center mb-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            type="button"
+                            onClick={() => handleGenerateAI(match)}
+                            disabled={generatingAI === match.id}
+                            className="text-xs bg-indigo-500/10 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/20 w-full"
+                          >
+                            {generatingAI === match.id ? (
+                              <Loader2 className="w-4 h-4 ml-2 animate-spin" /> 
+                            ) : (
+                              <Bot className="w-4 h-4 ml-2" />
+                            )}
+                            توليد الإجابات بـ AI (Gemini)
+                          </Button>
+                        </div>
+                        {match.questions.sort((a: any, b: any) => (a.question_order || 0) - (b.question_order || 0)).map((q: any) => (
                           <div key={q.id}>
                             <label className="text-xs text-muted-foreground mb-1 block">{q.question_text}</label>
                             <select 
