@@ -1,5 +1,6 @@
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import confetti from "canvas-confetti";
 import { Navbar } from "@/components/Navbar";
 import { Medal, Trophy } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -15,6 +16,42 @@ export default function LeaderboardPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const hasFiredConfetti = useRef(false);
+
+  useEffect(() => {
+    if (users.length > 0 && currentUserId && !hasFiredConfetti.current) {
+      if (users[0].id === currentUserId && users[0].total_points > 0) {
+        hasFiredConfetti.current = true;
+        
+        const duration = 4000;
+        const end = Date.now() + duration;
+
+        const frame = () => {
+          confetti({
+            particleCount: 7,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0 },
+            colors: ['#FFD700', '#FF8C00', '#FF69B4', '#00FFFF', '#32CD32'],
+            zIndex: 100
+          });
+          confetti({
+            particleCount: 7,
+            angle: 120,
+            spread: 60,
+            origin: { x: 1 },
+            colors: ['#FFD700', '#FF8C00', '#FF69B4', '#00FFFF', '#32CD32'],
+            zIndex: 100
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      }
+    }
+  }, [users, currentUserId]);
 
   useEffect(() => {
     const fetchData = async () => {
