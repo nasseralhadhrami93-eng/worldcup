@@ -27,6 +27,7 @@ export type Prediction = {
 };
 
 import { TeamLogo } from "./ui/TeamLogo";
+import { CountdownTimer } from "./ui/CountdownTimer";
 import { Button } from "./ui/Button";
 
 interface MatchCardProps {
@@ -86,14 +87,12 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
           </span>
         </div>
         <div>
-          {isLocked ? (
-            <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20">
-              <Lock className="w-3 h-3" /> مغلقة
+          {match.isLocked ? (
+            <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/20">
+              <Lock className="w-3.5 h-3.5" /> قُفلت التوقعات
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-md border border-primary/20">
-              مفتوحة للتوقع
-            </span>
+            <CountdownTimer targetDate={match.kickoffTime} />
           )}
         </div>
       </div>
