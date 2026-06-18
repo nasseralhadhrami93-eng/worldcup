@@ -4,6 +4,7 @@ import confetti from "canvas-confetti";
 import { Navbar } from "@/components/Navbar";
 import { Medal, Trophy } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { PlayerCardModal, type PlayerProfile } from "@/components/PlayerCardModal";
 
 type Profile = {
   id: string;
@@ -12,9 +13,10 @@ type Profile = {
 }
 
 export default function LeaderboardPage() {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerProfile | null>(null);
   const supabase = createClient();
   const hasFiredConfetti = useRef(false);
 
@@ -117,7 +119,8 @@ export default function LeaderboardPage() {
                   return (
                     <tr 
                       key={user.id} 
-                      className={`transition-colors hover:bg-card-hover/30 ${isMe ? 'bg-primary/5' : ''}`}
+                      onClick={() => setSelectedPlayer({ id: user.id, username: user.username, total_points: user.total_points, rank: index + 1 })}
+                      className={`transition-colors hover:bg-card-hover/50 cursor-pointer ${isMe ? 'bg-primary/5' : ''}`}
                     >
                       <td className="px-6 py-4">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border ${getBadgeColor(index)}`}>
@@ -152,6 +155,12 @@ export default function LeaderboardPage() {
           </div>
         </div>
       </main>
+      
+      <PlayerCardModal 
+        isOpen={selectedPlayer !== null} 
+        onClose={() => setSelectedPlayer(null)} 
+        user={selectedPlayer} 
+      />
     </div>
   );
 }
