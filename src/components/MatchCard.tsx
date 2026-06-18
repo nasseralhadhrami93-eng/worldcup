@@ -28,6 +28,7 @@ export type Prediction = {
 
 import { CountdownTimer } from "./ui/CountdownTimer";
 import { Button } from "./ui/Button";
+import { teamColors } from "@/utils/teamColors";
 
 interface MatchCardProps {
   match: Match;
@@ -75,9 +76,24 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
     }
   };
 
+  const homeColor = teamColors[match.homeTeam.name] || '#64748b'; // default to slate-500
+  const awayColor = teamColors[match.awayTeam.name] || '#64748b';
+
   return (
-    <div className={`rounded-xl border ${isLocked ? 'border-white/5 bg-black/40' : 'border-white/10 bg-white/5'} overflow-hidden shadow-sm transition-all hover:border-white/20`}>
-      {/* Header */}
+    <div className={`relative rounded-xl border ${isLocked ? 'border-white/5 bg-black/40' : 'border-white/10 bg-white/5'} overflow-hidden shadow-sm transition-all hover:border-white/20`}>
+      {/* Background Glow Effect */}
+      <div 
+        className="absolute top-0 right-0 w-1/2 h-full opacity-15 pointer-events-none blur-3xl transition-colors duration-500"
+        style={{ background: `linear-gradient(to left, ${homeColor}, transparent)` }}
+      />
+      <div 
+        className="absolute top-0 left-0 w-1/2 h-full opacity-15 pointer-events-none blur-3xl transition-colors duration-500"
+        style={{ background: `linear-gradient(to right, ${awayColor}, transparent)` }}
+      />
+
+      {/* Content wrapper with z-index to stay above glow */}
+      <div className="relative z-10">
+        {/* Header */}
       <div className="p-4 border-b border-white/5 bg-black/20 flex justify-between items-center">
         <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
           <Clock className="w-4 h-4" />
@@ -188,6 +204,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
           )}
         </div>
       </form>
+      </div>
     </div>
   );
 }
