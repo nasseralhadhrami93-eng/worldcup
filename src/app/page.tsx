@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { Trophy, Target, TrendingUp } from "lucide-react";
+import { Sponsors } from "@/components/Sponsors";
 
 export default function Home() {
   return (
@@ -90,6 +91,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Sponsors Section */}
+        <Sponsors />
       </main>
     </>
   );

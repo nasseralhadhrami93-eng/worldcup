@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { MatchCard } from "@/components/MatchCard";
 import { LayoutDashboard } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { Sponsors } from "@/components/Sponsors";
 
 // Types matching Supabase schema + UI needs
 type Question = {
@@ -193,6 +194,11 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Sponsors Section */}
+      <div className="border-t border-white/5 bg-black/20 mt-auto">
+        <Sponsors />
+      </div>
     </div>
   );
 }
