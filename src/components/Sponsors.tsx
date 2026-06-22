@@ -19,11 +19,8 @@ export function Sponsors() {
 
         <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
           {sponsors.map((sponsor) => (
-            <a
+            <div
               key={sponsor.id}
-              href={sponsor.websiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="group relative flex flex-col items-center justify-center p-6 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-xl transition-all duration-300 hover:-translate-y-2 hover:border-yellow-400/30 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(250,204,21,0.15)] w-40 h-40 md:w-48 md:h-48"
             >
               {/* Image Container with inner glow */}
@@ -36,7 +33,7 @@ export function Sponsors() {
                   className="object-contain filter transition-all duration-500 opacity-90 group-hover:opacity-100 group-hover:scale-105"
                 />
               </div>
-            </a>
+            </div>
           ))}
         </div>
       </div>
