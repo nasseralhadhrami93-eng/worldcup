@@ -270,7 +270,7 @@ export default function AdminPage() {
             <h2 className="text-xl font-bold mb-4">إدارة المباريات</h2>
             {matches.map(match => {
               const isGraded = match.questions.some((q:any) => q.correct_option_index !== null);
-              const isLocked = match.is_manually_locked || isPast(new Date(match.match_time));
+              const isLocked = match.is_manually_locked || isPast(new Date(match.match_time.replace(' ', 'T')));
 
               return (
                 <div key={match.id} className="bg-card border border-border p-6 rounded-xl flex flex-col md:flex-row gap-6">
@@ -278,9 +278,9 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2 font-bold text-lg">
                       {match.team_one} <span className="text-muted-foreground font-bold">ضد</span> {match.team_two}
                     </div>
-                    <div className="text-sm text-muted-foreground" dir="ltr">
-                      {format(new Date(match.match_time), "dd MMM yyyy - HH:mm", { locale: ar })}
-                    </div>
+                    <span className="text-sm font-medium" dir="ltr">
+                      {format(new Date(match.match_time.replace(' ', 'T')), "dd MMM yyyy - HH:mm", { locale: ar })}
+                    </span>
                     
                     <div className="pt-2 flex gap-2">
                       <Button variant={match.is_manually_locked ? "outline" : "default"} size="sm" onClick={() => toggleMatchLock(match.id, match.is_manually_locked)} disabled={isGraded}>

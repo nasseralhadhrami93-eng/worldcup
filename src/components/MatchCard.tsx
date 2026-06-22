@@ -48,7 +48,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
       return;
     }
     const checkLock = () => {
-      setIsClientLocked(isPast(new Date(match.kickoffTime)));
+      setIsClientLocked(isPast(new Date(match.kickoffTime.replace(' ', 'T'))));
     };
     checkLock();
     const interval = setInterval(checkLock, 60000);
@@ -98,7 +98,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
         <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
           <Clock className="w-4 h-4" />
           <span dir="ltr">
-            {format(new Date(match.kickoffTime), "dd MMM yyyy - HH:mm", { locale: ar })}
+            {format(new Date(match.kickoffTime.replace(' ', 'T')), "dd MMM yyyy - HH:mm", { locale: ar })}
           </span>
         </div>
         <div>

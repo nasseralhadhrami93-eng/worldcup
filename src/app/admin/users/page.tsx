@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         {user.created_at 
-                          ? format(new Date(user.created_at), "dd MMM yyyy - hh:mm a", { locale: ar })
+                          ? format(new Date(user.created_at.replace(' ', 'T')), "dd MMM yyyy - hh:mm a", { locale: ar })
                           : "غير معروف"}
                       </div>
                     </td>

@@ -19,7 +19,7 @@ export function CountdownTimer({ targetDate }: CountdownTimerProps) {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const difference = new Date(targetDate).getTime() - new Date().getTime();
+      const difference = new Date(targetDate.replace(' ', 'T')).getTime() - new Date().getTime();
 
       if (difference <= 0) {
         setIsExpired(true);

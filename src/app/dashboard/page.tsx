@@ -153,7 +153,7 @@ export default function DashboardPage() {
   }
 
   const sortedMatches = [...matches].sort((a, b) => 
-    new Date(a.kickoffTime).getTime() - new Date(b.kickoffTime).getTime()
+    new Date(a.kickoffTime.replace(' ', 'T')).getTime() - new Date(b.kickoffTime.replace(' ', 'T')).getTime()
   );
 
   return (
