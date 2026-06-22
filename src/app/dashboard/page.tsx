@@ -165,7 +165,7 @@ export default function DashboardPage() {
         <div className="mb-8 flex items-center gap-3 border-b border-border pb-4">
           <LayoutDashboard className="w-8 h-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-black">لوحة التحكم</h1>
+            <h1 className="text-3xl font-black">توقعات مباريات اليوم</h1>
             <p className="text-muted-foreground text-sm mt-1">
               استعرض المباريات المتاحة وأدخل توقعاتك.
             </p>
