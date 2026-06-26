@@ -12,8 +12,8 @@ export type Question = {
 
 export type Match = {
   id: string;
-  homeTeam: { name: string; flag: string };
-  awayTeam: { name: string; flag: string };
+  homeTeam: { name: string; flag?: string; rawName?: string };
+  awayTeam: { name: string; flag?: string; rawName?: string };
   kickoffTime: string;
   isLocked: boolean;
   questions: Question[];
@@ -76,8 +76,8 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
     }
   };
 
-  const homeColor = teamColors[match.homeTeam.name] || '#64748b'; // default to slate-500
-  const awayColor = teamColors[match.awayTeam.name] || '#64748b';
+  const homeColor = teamColors[match.homeTeam.rawName || match.homeTeam.name] || '#64748b'; // default to slate-500
+  const awayColor = teamColors[match.awayTeam.rawName || match.awayTeam.name] || '#64748b';
 
   return (
     <div className={`relative rounded-xl border ${isLocked ? 'border-white/5 bg-black/40' : 'border-white/10 bg-white/5'} overflow-hidden shadow-sm transition-all hover:border-white/20`}>

@@ -6,6 +6,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { LayoutDashboard } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { Sponsors } from "@/components/Sponsors";
+import { teamColors } from "@/utils/teamColors";
 
 // Types matching Supabase schema + UI needs
 type Question = {
@@ -17,8 +18,8 @@ type Question = {
 
 type Match = {
   id: string;
-  homeTeam: { name: string; flag: string };
-  awayTeam: { name: string; flag: string };
+  homeTeam: { name: string; flag?: string; rawName?: string };
+  awayTeam: { name: string; flag?: string; rawName?: string };
   kickoffTime: string;
   isLocked: boolean;
   questions: Question[];
@@ -56,13 +57,16 @@ export default function DashboardPage() {
 
       if (matchesData) {
         const mappedMatches: Match[] = matchesData.map(m => {
-          // Parse "🏳️ TeamName" if needed, or fallback
-          const t1 = m.team_one.split(' ');
-          const t2 = m.team_two.split(' ');
+          // Find the core team name for color mapping
+          const getRawName = (str: string) => {
+            const match = Object.keys(teamColors).find(k => str.includes(k));
+            return match || str;
+          };
+
           return {
             id: m.id,
-            homeTeam: { flag: t1.length > 1 ? t1[0] : '🏳️', name: t1.length > 1 ? t1.slice(1).join(' ') : m.team_one },
-            awayTeam: { flag: t2.length > 1 ? t2[0] : '🏳️', name: t2.length > 1 ? t2.slice(1).join(' ') : m.team_two },
+            homeTeam: { name: m.team_one, rawName: getRawName(m.team_one) },
+            awayTeam: { name: m.team_two, rawName: getRawName(m.team_two) },
             kickoffTime: m.match_time,
             isLocked: m.is_manually_locked,
             questions: m.questions.map((q: any) => ({
