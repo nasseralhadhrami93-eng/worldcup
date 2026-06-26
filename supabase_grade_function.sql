@@ -26,7 +26,7 @@ BEGIN
       WHERE question_id = q_id::uuid AND selected_option_index = ans_idx::int
     LOOP
       UPDATE public.profiles
-      SET total_points = total_points + 10
+      SET total_points = total_points + 1
       WHERE id = pred.user_id;
     END LOOP;
   END LOOP;

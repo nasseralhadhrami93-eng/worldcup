@@ -104,7 +104,7 @@ export default function DashboardPage() {
           if (hasAnyGraded) {
              matchInfo?.questions.forEach((q: any) => {
                if (q.correct_option_index !== null && grouped[matchId][q.id] === q.correct_option_index.toString()) {
-                 points += 10;
+                 points += 1;
                }
              });
           }

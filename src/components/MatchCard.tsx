@@ -170,7 +170,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
                 <div className="mt-2 text-xs font-medium">
                   {match.results[q.id] === answers[q.id] ? (
                     <span className="text-primary flex items-center gap-1 bg-primary/10 p-2 rounded-md border border-primary/20">
-                      <CheckCircle2 className="w-4 h-4" /> إجابة صحيحة (+10 نقطة)
+                      <CheckCircle2 className="w-4 h-4" /> إجابة صحيحة (+1 نقطة)
                     </span>
                   ) : (
                     <span className="text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20 block">
