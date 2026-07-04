@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 [0: الفريق الأول، 1: الفريق الثاني، 2: لا توجد أهداف وتأهل بركلات الترجيح]
 
 السؤال 3: ما هي نتيجة المباراة النهائية (فارق الأهداف)؟
-[0: فوز الفريق الأول بفارق هدف أو أكثر، 1: فوز الفريق الثاني بفارق هدف أو أكثر، 2: ركلات ترجيح وتأهل الفريق الأول، 3: ركلات ترجيح وتأهل الفريق الثاني]
+[0: فوز الفريق الأول بفارق هدف، 1: فوز الفريق الأول بفارق هدفين أو أكثر، 2: فوز الفريق الثاني بفارق هدف، 3: فوز الفريق الثاني بفارق هدفين أو أكثر، 4: ركلات ترجيح وتأهل الفريق الأول، 5: ركلات ترجيح وتأهل الفريق الثاني]
 
 السؤال 4: في أي وقت سيتم تسجيل أول هدف؟
 [0: الشوط الأول، 1: الشوط الثاني، 2: الأشواط الإضافية، 3: لا توجد أهداف]
@@ -58,10 +58,14 @@ export async function POST(request: Request) {
 السؤال 7: هل ستشهد المباراة احتساب ركلة جزاء؟
 [0: نعم وتم تسجيلها، 1: نعم وتم إهدارها، 2: لا لن تحتسب ركلة جزاء]
 
+السؤال 8: كم عدد الأهداف المسجلة في المباراة؟
+[0: لا توجد أهداف، 1: هدف، 2: هدفين، 3: ثلاثة أهداف، 4: أربعة أهداف، 5: خمسة أهداف أو أكثر]
+**توجيه حازم جداً بخصوص السؤال 8:** أهداف "ركلات الترجيح الفاصلة (Penalty Shootout)" لا تُجمع ولا تُحسب أبداً ضمن إجمالي أهداف المباراة. قم فقط بجمع الأهداف المسجلة في الوقت الأصلي والإضافي (Regular and Extra time goals) لاختيار الإجابة الصحيحة.
+
 بناءً على أحداث هذه المباراة الواقعية، حدد الرقم الصحيح لكل سؤال (من 0).
 أجب فقط بصيغة JSON نظيفة تحتوي على مصفوفة للإجابات بالترتيب:
 {
-  "answers": [integer, integer, integer, integer, integer, integer, integer]
+  "answers": [integer, integer, integer, integer, integer, integer, integer, integer]
 }
 `;
 
@@ -71,8 +75,8 @@ export async function POST(request: Request) {
     // Parse the JSON directly since we enforced responseMimeType
     const parsedData = JSON.parse(responseText);
 
-    if (!parsedData.answers || !Array.isArray(parsedData.answers)) {
-      throw new Error("Invalid format returned by AI");
+    if (!parsedData.answers || !Array.isArray(parsedData.answers) || parsedData.answers.length !== 8) {
+      throw new Error("Invalid format returned by AI: Expected array of 8 integers");
     }
 
     return NextResponse.json(parsedData);
