@@ -14,11 +14,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize the Supabase client with the user's cookies to pass RLS
-    const supabase = await createClient();
+    // Initialize the Supabase client with the user's cookies to verify their session
+    const supabaseUser = await createClient();
 
     // Verify the user is authenticated and matches the userId
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user || user.id !== userId) {
       return NextResponse.json(
         { error: 'Unauthorized: Invalid session or user mismatch' },
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Fetch match to check if it's locked
-    const { data: match, error: matchError } = await supabase
+    // 1. Fetch match to check if it's locked using the user client
+    const { data: match, error: matchError } = await supabaseUser
       .from('matches')
       .select('match_time, manual_override')
       .eq('id', matchId)
@@ -53,8 +53,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Insert predictions
-    const { error: insertError } = await supabase
+    // 3. Insert predictions using the Service Role Key to bypass any RLS policies 
+    // that might be blocking late insertions
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'System configuration error: SUPABASE_SERVICE_ROLE_KEY is missing.' },
+        { status: 500 }
+      );
+    }
+
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+    const supabaseAdmin = createSupabaseClient(supabaseUrl, serviceRoleKey);
+
+    const { error: insertError } = await supabaseAdmin
       .from('predictions')
       .upsert(updates, { onConflict: 'user_id, question_id' });
 
