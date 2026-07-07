@@ -150,7 +150,10 @@ export default function AdminPage() {
   };
 
   const updateManualOverride = async (matchId: string, state: string) => {
-    await supabase.from('matches').update({ manual_override: state }).eq('id', matchId);
+    const { error } = await supabase.from('matches').update({ manual_override: state }).eq('id', matchId);
+    if (error) {
+      alert("حدث خطأ! يرجى التأكد من تشغيل كود الـ SQL في Supabase\n" + error.message);
+    }
     fetchDashboardData();
   };
 
