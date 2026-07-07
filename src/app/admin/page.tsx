@@ -42,7 +42,7 @@ export default function AdminPage() {
     const { data: matchesData } = await supabase
       .from('matches')
       .select(`
-        id, team_one, team_two, match_time, manual_override,
+        id, team_one, team_two, match_time, is_manually_locked,
         questions ( id, question_text, options, correct_option_index )
       `)
       .order('match_time', { ascending: false });
@@ -124,7 +124,7 @@ export default function AdminPage() {
         team_one: homeName,
         team_two: awayName,
         match_time: new Date(kickoff).toISOString(),
-        manual_override: 'auto'
+        is_manually_locked: false
       })
       .select('id')
       .single();
@@ -149,11 +149,8 @@ export default function AdminPage() {
     alert("تم إضافة المباراة بنجاح!");
   };
 
-  const updateManualOverride = async (matchId: string, state: string) => {
-    const { error } = await supabase.from('matches').update({ manual_override: state }).eq('id', matchId);
-    if (error) {
-      alert("حدث خطأ! يرجى التأكد من تشغيل كود الـ SQL في Supabase\n" + error.message);
-    }
+  const toggleMatchLock = async (matchId: string, currentLock: boolean) => {
+    await supabase.from('matches').update({ is_manually_locked: !currentLock }).eq('id', matchId);
     fetchDashboardData();
   };
 
@@ -284,7 +281,7 @@ export default function AdminPage() {
             <h2 className="text-xl font-bold mb-4">إدارة المباريات</h2>
             {matches.map(match => {
               const isGraded = match.questions.some((q:any) => q.correct_option_index !== null);
-              const isLocked = match.manual_override === 'closed' || (match.manual_override === 'auto' && isPast(new Date(match.match_time.replace(' ', 'T'))));
+              const isLocked = match.is_manually_locked || isPast(new Date(match.match_time.replace(' ', 'T')));
 
               return (
                 <div key={match.id} className="bg-card border border-border p-6 rounded-xl flex flex-col md:flex-row gap-6">
@@ -297,27 +294,11 @@ export default function AdminPage() {
                     </span>
                     
                     <div className="pt-2 flex gap-2">
-                      <div className="flex bg-muted rounded-md p-1">
-                        <Button 
-                          variant={match.manual_override === 'auto' || !match.manual_override ? "default" : "ghost"} 
-                          size="sm" 
-                          className="h-8 px-3 text-xs"
-                          onClick={() => updateManualOverride(match.id, 'auto')} 
-                          disabled={isGraded}>تلقائي</Button>
-                        <Button 
-                          variant={match.manual_override === 'open' ? "default" : "ghost"} 
-                          size="sm" 
-                          className="h-8 px-3 text-xs"
-                          onClick={() => updateManualOverride(match.id, 'open')} 
-                          disabled={isGraded}>فتح إجباري</Button>
-                        <Button 
-                          variant={match.manual_override === 'closed' ? "default" : "ghost"} 
-                          size="sm" 
-                          className="h-8 px-3 text-xs"
-                          onClick={() => updateManualOverride(match.id, 'closed')} 
-                          disabled={isGraded}>قفل إجباري</Button>
-                      </div>
-                      <Button variant="destructive" size="sm" className="h-8 px-3 text-xs ml-auto" onClick={() => deleteMatch(match.id)}>
+                      <Button variant={match.is_manually_locked ? "outline" : "default"} size="sm" onClick={() => toggleMatchLock(match.id, match.is_manually_locked)} disabled={isGraded}>
+                        {match.is_manually_locked ? <Unlock className="w-4 h-4 mr-1" /> : <Lock className="w-4 h-4 mr-1" />}
+                        {match.is_manually_locked ? "فتح التوقعات" : "قفل إجباري"}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteMatch(match.id)}>
                         <Trash2 className="w-4 h-4" /> حذف
                       </Button>
                     </div>

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { format, isPast } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Lock, Unlock, Clock, CheckCircle2 } from "lucide-react";
+import { Lock, Clock, CheckCircle2 } from "lucide-react";
 export type Question = {
   id: string;
   text: string;
@@ -15,7 +15,7 @@ export type Match = {
   homeTeam: { name: string; flag?: string; rawName?: string };
   awayTeam: { name: string; flag?: string; rawName?: string };
   kickoffTime: string;
-  manualOverride: string;
+  isLocked: boolean;
   questions: Question[];
   results?: Record<string, string>;
 };
@@ -43,12 +43,8 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
 
   useEffect(() => {
     // Re-check locking status periodically if not already locked by admin
-    if (match.manualOverride === 'closed') {
+    if (match.isLocked) {
       setIsClientLocked(true);
-      return;
-    }
-    if (match.manualOverride === 'open') {
-      setIsClientLocked(false);
       return;
     }
     const checkLock = () => {
@@ -57,9 +53,9 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
     checkLock();
     const interval = setInterval(checkLock, 60000);
     return () => clearInterval(interval);
-  }, [match.kickoffTime, match.manualOverride]);
+  }, [match.kickoffTime, match.isLocked]);
 
-  const isLocked = match.manualOverride === 'closed' || (match.manualOverride !== 'open' && isClientLocked);
+  const isLocked = isClientLocked || match.isLocked;
   const isPending = prediction?.status === "pending";
   const isGraded = prediction?.status === "graded";
 
@@ -106,15 +102,7 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
           </span>
         </div>
         <div>
-          {match.manualOverride === 'closed' ? (
-            <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/20">
-              <Lock className="w-3.5 h-3.5" /> قُفلت التوقعات
-            </span>
-          ) : match.manualOverride === 'open' ? (
-            <span className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-500/10 px-2.5 py-1.5 rounded-md border border-green-500/20">
-              <Unlock className="w-3.5 h-3.5" /> مفتوحة إجبارياً
-            </span>
-          ) : isClientLocked ? (
+          {match.isLocked ? (
             <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/20">
               <Lock className="w-3.5 h-3.5" /> قُفلت التوقعات
             </span>
