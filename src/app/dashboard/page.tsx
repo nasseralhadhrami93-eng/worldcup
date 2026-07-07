@@ -21,7 +21,7 @@ type Match = {
   homeTeam: { name: string; flag?: string; rawName?: string };
   awayTeam: { name: string; flag?: string; rawName?: string };
   kickoffTime: string;
-  isLocked: boolean;
+  manualOverride: string;
   questions: Question[];
   results?: Record<string, string>;
 }
@@ -48,7 +48,7 @@ export default function DashboardPage() {
       const { data: matchesData } = await supabase
         .from('matches')
         .select(`
-          id, team_one, team_two, match_time, is_manually_locked,
+          id, team_one, team_two, match_time, manual_override,
           questions (
             id, question_text, options, correct_option_index
           )
@@ -68,7 +68,7 @@ export default function DashboardPage() {
             homeTeam: { name: m.team_one, rawName: getRawName(m.team_one) },
             awayTeam: { name: m.team_two, rawName: getRawName(m.team_two) },
             kickoffTime: m.match_time,
-            isLocked: m.is_manually_locked,
+            manualOverride: m.manual_override || 'auto',
             questions: m.questions.map((q: any) => ({
               id: q.id,
               text: q.question_text,
@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const handlePredictionSubmit = async (matchId: string, answers: Record<string, string>) => {
     if (!userId) return;
 
-    // Upsert predictions
+    // Call the secure API route
     const updates = Object.entries(answers).map(([qId, val]) => ({
       user_id: userId,
       match_id: matchId,
@@ -140,16 +140,27 @@ export default function DashboardPage() {
       selected_option_index: parseInt(val)
     }));
 
-    const { error } = await supabase.from('predictions').upsert(updates, { onConflict: 'user_id, question_id' });
-    if (error) {
-      alert("حدث خطأ أثناء حفظ التوقعات: " + error.message);
-    } else {
+    try {
+      const response = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, matchId, userId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'فشل حفظ التوقعات');
+      }
+
       alert("تم حفظ توقعاتك بنجاح!");
       // Update local state loosely
       setPredictions(prev => {
         const existing = prev.filter(p => p.matchId !== matchId);
         return [...existing, { matchId, userId, answers, status: 'pending', pointsEarned: 0 }];
       });
+    } catch (error: any) {
+      alert("حدث خطأ أثناء حفظ التوقعات: " + error.message);
     }
   };
 

@@ -43,8 +43,12 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
 
   useEffect(() => {
     // Re-check locking status periodically if not already locked by admin
-    if (match.isLocked) {
+    if (match.manualOverride === 'closed') {
       setIsClientLocked(true);
+      return;
+    }
+    if (match.manualOverride === 'open') {
+      setIsClientLocked(false);
       return;
     }
     const checkLock = () => {
@@ -53,9 +57,9 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
     checkLock();
     const interval = setInterval(checkLock, 60000);
     return () => clearInterval(interval);
-  }, [match.kickoffTime, match.isLocked]);
+  }, [match.kickoffTime, match.manualOverride]);
 
-  const isLocked = isClientLocked || match.isLocked;
+  const isLocked = match.manualOverride === 'closed' || (match.manualOverride !== 'open' && isClientLocked);
   const isPending = prediction?.status === "pending";
   const isGraded = prediction?.status === "graded";
 
@@ -102,7 +106,15 @@ export function MatchCard({ match, prediction, onSubmitPrediction, isAdmin }: Ma
           </span>
         </div>
         <div>
-          {match.isLocked ? (
+          {match.manualOverride === 'closed' ? (
+            <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/20">
+              <Lock className="w-3.5 h-3.5" /> قُفلت التوقعات
+            </span>
+          ) : match.manualOverride === 'open' ? (
+            <span className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-500/10 px-2.5 py-1.5 rounded-md border border-green-500/20">
+              <Unlock className="w-3.5 h-3.5" /> مفتوحة إجبارياً
+            </span>
+          ) : isClientLocked ? (
             <span className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/20">
               <Lock className="w-3.5 h-3.5" /> قُفلت التوقعات
             </span>
