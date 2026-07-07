@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { format, isPast } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Lock, Clock, CheckCircle2 } from "lucide-react";
+import { Lock, Unlock, Clock, CheckCircle2 } from "lucide-react";
 export type Question = {
   id: string;
   text: string;
@@ -15,7 +15,7 @@ export type Match = {
   homeTeam: { name: string; flag?: string; rawName?: string };
   awayTeam: { name: string; flag?: string; rawName?: string };
   kickoffTime: string;
-  isLocked: boolean;
+  manualOverride: string;
   questions: Question[];
   results?: Record<string, string>;
 };
