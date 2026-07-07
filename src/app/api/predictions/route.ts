@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/server';
 import { isPast } from 'date-fns';
 
 export async function POST(request: Request) {
@@ -14,11 +14,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify against Supabase with Service Role to bypass client RLS if any, or just normal key
-    // Better to use service role key if we want to securely check and insert.
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize the Supabase client with the user's cookies to pass RLS
+    const supabase = await createClient();
+
+    // Verify the user is authenticated and matches the userId
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user || user.id !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Invalid session or user mismatch' },
+        { status: 401 }
+      );
+    }
 
     // 1. Fetch match to check if it's locked
     const { data: match, error: matchError } = await supabase
